@@ -94,6 +94,21 @@ function editProfile(id){if(!adminMode)return;const t=team(id);if(!t)return;cons
 async function rosterPhoto(file,oldPhoto){if(!file)return oldPhoto||'';if(!file.type.startsWith('image/'))throw Error('Please select an image file');return await new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=()=>reject(Error('Unable to read image'));r.onload=()=>{const im=new Image();im.onerror=()=>reject(Error('Unable to open image'));im.onload=()=>{const c=document.createElement('canvas');const scale=Math.min(1,360/Math.max(im.width,im.height));c.width=Math.max(1,Math.round(im.width*scale));c.height=Math.max(1,Math.round(im.height*scale));c.getContext('2d').drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.65))};im.src=r.result};r.readAsDataURL(file)})}
 async function saveFullRoster(id){if(!adminMode)return;const t=team(id);if(!t)return;const btn=$('saveFullRoster');btn.disabled=true;btn.textContent='Saving…';try{const p=profileData(t);const updated={};for(const [kind,count] of [['management',3],['players',8]]){updated[kind]=[];for(let i=0;i<Math.max(count,p[kind].length);i++){const field=$(`roster_${kind}_${i}`);if(!field)continue;const name=field.value.trim();const photo=await rosterPhoto($(`photo_${kind}_${i}`).files[0],p[kind][i]?.photo);const item={name:name||'Name',photo};if(kind==='management')item.role=$(`role_${i}`).value.trim();updated[kind].push(item)}}p.management=updated.management;p.players=updated.players;save();render();alert('Full team saved successfully.')}catch(e){alert('Could not save team: '+e.message);btn.disabled=false;btn.textContent='Save full team'}}
 /* Navigating to Team Management must always return to the team list. */
-const originalGo=go;go=function(p){if(p==='teams')openTeamProfileId='';originalGo(p)};
+const originalGo=go;
+go=function(p){
+ if(p==='teams'){
+  openTeamProfileId='';
+  if(!adminMode)return;
+  page='teams';
+  try{
+   originalRender();
+   $('content').innerHTML=teamProfilesPage();
+   $('pageTitle').textContent='Team Management';
+   $('nav').querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.textContent.includes('Teams')));
+  }catch(err){console.error('Team Management error:',err);alert('Team Management could not open: '+err.message)}
+  return;
+ }
+ originalGo(p);
+};
 
 </script></body></html>
